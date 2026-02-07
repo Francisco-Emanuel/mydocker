@@ -1,0 +1,6 @@
+# Ignore pastas de build locais e git
+target/
+.git/
+.idea/
+.vscode/
+.mnt/

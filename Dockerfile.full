@@ -1,0 +1,73 @@
+# ==========================================
+# ESTÁGIO 1: A BASE (Imagem Oficial do GraalVM JDK 21)
+# ==========================================
+FROM container-registry.oracle.com/graalvm/jdk:21 AS base
+
+# Instala ferramentas básicas do Linux (oracle)
+RUN microdnf update -y \
+    && microdnf install -y bash curl git unzip findutils \
+    && microdnf clean all
+
+# Define a pasta de trabalho
+WORKDIR /app
+
+# ==========================================
+# ESTÁGIO 2: DEVELOPMENT 
+# ==========================================
+FROM base AS development
+
+# Instala o Quarkus CLI 
+# Permitindo rodar 'quarkus create', 'quarkus dev', etc.
+RUN curl -Ls https://sh.jbang.dev | bash -s - trust add https://repo1.maven.org/maven2/io/quarkus/quarkus-cli/ \
+    && curl -Ls https://sh.jbang.dev | bash -s - app install --fresh --force quarkus@quarkusio
+
+# Adiciona o comando 'quarkus' ao terminal
+ENV PATH="/root/.jbang/bin:${PATH}"
+
+# Configura o Quarkus para aceitar conexões de fora (0.0.0.0)
+ENV QUARKUS_HTTP_HOST=0.0.0.0
+
+# O comando padrão mantem o container vivo esperando suas ordens
+CMD ["bash"]
+
+# ==========================================
+# ESTÁGIO 3: BUILDER (O "Cache" de Produção)
+# ==========================================
+FROM development AS builder
+
+# CACHING DE DEPENDÊNCIAS DO MAVEN
+# Copiamos só os arquivos de dependência primeiro para usar o Cache do Docker
+COPY pom.xml .
+COPY mvnw .
+COPY .mvn .mvn
+
+# Baixa as dependências e SALVA NO CACHE DO DOCKER (/root/.m2)
+# Se você mudar o código Java, essa etapa é PULADA (Super rápido!)
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw dependency:go-offline
+
+# Cópia do código fonte
+COPY src src
+
+# Compila o projeto (usando o cache baixado acima)
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw package -DskipTests
+
+# ==========================================
+# ESTÁGIO 4: PRODUCTION (A Imagem Final Leve)
+# ==========================================
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3 AS production
+
+WORKDIR /app
+
+# Copia apenas o resultado da compilação (Joga fora o Maven, JDK pesado, etc)
+COPY --from=builder /app/target/quarkus-app/lib/ /app/lib/
+COPY --from=builder /app/target/quarkus-app/*.jar /app/
+COPY --from=builder /app/target/quarkus-app/app/ /app/app/
+COPY --from=builder /app/target/quarkus-app/quarkus/ /app/quarkus/
+
+# Usuário seguro (não-root)
+USER 1001
+
+EXPOSE 8080
+CMD ["java", "-jar", "/app/quarkus-run.jar"]

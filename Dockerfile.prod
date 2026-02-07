@@ -1,0 +1,43 @@
+# Estágio 1: Builder
+FROM quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-21 AS builder
+
+# Usuario root para começar o processo de caching e instalação de dependências
+USER root
+
+WORKDIR /code
+
+# Copia os arquivos de configuração do Maven para aproveitar o cache de dependências
+COPY mvnw /code/mvnw
+COPY .mvn /code/.mvn
+COPY pom.xml /code/
+
+# Colocando o usuario quarus como dono dos arquivos para evitar problemas de permissão
+RUN chown -R quarkus:quarkus /code
+
+USER quarkus
+
+# Baixa as dependências do projeto para aproveitar o cache do Docker
+RUN ./mvnw dependency:go-offline
+
+# Copia a base do projeto para o container
+COPY --chown=quarkus:quarkus src /code/src
+
+# Compila o projeto usando o perfil 'native' para gerar um executável nativo
+RUN ./mvnw package -Pnative -DskipTests
+
+# Estágio 2: Imagem final leve para produção
+FROM quay.io/quarkus/ubi9-quarkus-micro-image:2.0 AS production
+
+WORKDIR /work/
+
+# Copia o executável nativo gerado no estágio anterior para a imagem final
+COPY --from=builder /code/target/*-runner /work/application
+
+# Da permissão de execução para o arquivo copiado
+RUN chmod 775 /work /work/application
+
+# Expõe a porta que o Quarkus irá rodar
+EXPOSE 8080
+
+# Comando para rodar a aplicação nativa
+CMD ["./application", "-Dquarkus.http.host=0.0.0.0"]

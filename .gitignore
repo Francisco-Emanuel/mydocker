@@ -1,0 +1,44 @@
+# --- Java / Maven (Essencial para Quarkus) ---
+target/
+*.class
+*.log
+.flattened-pom.xml
+dependency-reduced-pom.xml
+
+# --- Docker & Ambiente (Segurança) ---
+# Ignora arquivos de variáveis de ambiente com senhas
+.env
+.env.*
+!.env.example
+# Ignora sobrescritas locais do docker compose
+docker-compose.override.yml
+
+# --- IDEs / Editores (Configurações pessoais não devem subir) ---
+# VS Code
+.vscode/
+*.code-workspace
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# --- Sistema Operacional (Lixo de OS) ---
+.DS_Store
+Thumbs.db
+
+# --- Quarkus CLI & JBang (Baseado no seu Dockerfile.dev) ---
+# Evita subir cache local do JBang ou plugins instalados localmente
+.jbang/
+.quarkus/
+
+# --- Arquivos Temporários de Teste ---
+# Caso você gere relatórios de teste fora da pasta target
+test-report/
