@@ -1,0 +1,14 @@
+FROM container-registry.oracle.com/graalvm/jdk:21
+
+RUN microdnf update -y \
+    && microdnf install -y bash curl git unzip gcc glibc-devel zlib-devel \
+    && microdnf clean all
+
+RUN curl -Ls https://sh.jbang.dev | bash -s - trust add https://repo1.maven.org/maven2/io/quarkus/quarkus-cli/ \
+    && curl -Ls https://sh.jbang.dev | bash -s - app install --fresh --force quarkus@quarkusio
+
+ENV PATH="/root/.jbang/bin:${PATH}"
+
+WORKDIR /app
+
+CMD ["bash"]
