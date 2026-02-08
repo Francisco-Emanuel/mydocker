@@ -23,3 +23,5 @@ docker build -t teste_docker -f Dockerfile.multistage ./teste_docker
 ```bash
  docker run --rm -p "8080:8080" -it teste_docker 
 ```
+
+## Ta confuso demais, vou refazer o "Dockerfile.full" para simplificar o modo dev, e fazer de forma correta o compose.yaml
