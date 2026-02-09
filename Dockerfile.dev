@@ -1,0 +1,56 @@
+FROM registry.access.redhat.com/ubi9/openjdk-21 AS builder 
+
+USER root
+
+RUN microdnf update -y \
+    && microdnf install -y --nodocs --setopt=install_weak_deps=0 findutils tar gzip \
+    && microdnf clean all
+
+WORKDIR /app
+
+RUN --mount=type=cache,target=/root/.m2 \
+    --mount=type=bind,source=pom.xml,target=pom.xml \
+    --mount=type=bind,source=mvnw,target=mvnw \
+    --mount=type=bind,source=.mvn,target=.mvn \
+    ./mvnw dependency:go-offline -B
+
+COPY . /app
+
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw package -DskipTests -B
+
+########################################################################################################
+
+FROM registry.access.redhat.com/ubi9/openjdk-21 AS development
+
+USER root
+
+RUN microdnf update -y \
+    && microdnf install -y --nodocs --setopt=install_weak_deps=0 findutils shadow-utils tar gzip \
+    && microdnf clean all
+
+RUN groupadd --gid 1000 quarkus \
+    && useradd --uid 1000 --gid quarkus --shell /bin/bash --create-home quarkus ;
+
+USER quarkus
+
+ENV HOME=/home/quarkus
+
+WORKDIR /home/quarkus
+
+RUN curl -Ls https://sh.jbang.dev | bash -s - trust add https://repo1.maven.org/maven2/io/quarkus/quarkus-cli/ \
+    && curl -Ls https://sh.jbang.dev | bash -s - app install --fresh --force quarkus@quarkusio
+
+ENV PATH="/home/quarkus/.jbang/bin:${PATH}" \
+    QUARKUS_HTTP_HOST=0.0.0.0
+
+WORKDIR /app
+
+COPY --from=builder --chown=quarkus:quarkus /app/target/quarkus-app/lib/ /app/lib/
+COPY --from=builder --chown=quarkus:quarkus /app/target/quarkus-app/*.jar /app/
+COPY --from=builder --chown=quarkus:quarkus /app/target/quarkus-app/app/ /app/app/
+COPY --from=builder --chown=quarkus:quarkus /app/target/quarkus-app/quarkus/ /app/quarkus/
+
+USER quarkus
+ENTRYPOINT []
+CMD ["quarkus", "dev"]

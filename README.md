@@ -25,3 +25,8 @@ docker build -t teste_docker -f Dockerfile.multistage ./teste_docker
 ```
 
 ## Ta confuso demais, vou refazer o "Dockerfile.full" para simplificar o modo dev, e fazer de forma correta o compose.yaml
+
+- [x] Dockerfile.dev
+- [] docker-compose.yaml
+- [] mudar imagem para eclipse/temurin
+- [] tirar quarkus-cli

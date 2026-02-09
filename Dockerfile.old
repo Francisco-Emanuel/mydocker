@@ -1,0 +1,47 @@
+FROM container-registry.oracle.com/graalvm/jdk:21 AS base
+
+RUN microdnf update -y \
+    && microdnf install -y bash curl git unzip findutils \
+    && microdnf clean all
+
+WORKDIR /app
+
+FROM base AS development
+
+RUN curl -Ls https://sh.jbang.dev | bash -s - trust add https://repo1.maven.org/maven2/io/quarkus/quarkus-cli/ \
+    && curl -Ls https://sh.jbang.dev | bash -s - app install --fresh --force quarkus@quarkusio
+
+ENV PATH="/root/.jbang/bin:${PATH}" \
+    QUARKUS_HTTP_HOST=0.0.0.0
+
+
+
+CMD ["bash"]
+
+FROM development AS builder
+
+COPY pom.xml .
+COPY mvnw .
+COPY .mvn .mvn
+
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw dependency:go-offline
+
+COPY src src
+
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw package -DskipTests
+
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3 AS production
+
+WORKDIR /app
+
+COPY --from=builder /app/target/quarkus-app/lib/ /app/lib/
+COPY --from=builder /app/target/quarkus-app/*.jar /app/
+COPY --from=builder /app/target/quarkus-app/app/ /app/app/
+COPY --from=builder /app/target/quarkus-app/quarkus/ /app/quarkus/
+
+USER 1001
+
+EXPOSE 8080
+CMD ["java", "-jar", "/app/quarkus-run.jar"]
