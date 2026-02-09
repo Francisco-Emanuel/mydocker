@@ -5,14 +5,14 @@
 
 # DEV
 ```bash
-docker build --target development -t teste_docker -f Dockerfile.full ./teste_docker
+docker build -t teste_docker_dev -f Dockerfile.dev ./teste_docker
 ```
 ##### depois:
 ```bash
 docker run --rm -it \                                                              
   -v $(pwd)/teste_docker:/app \
   -p 8080:8080 \
-  teste_docker
+  teste_docker_dev
 ```
 
 # PROD
