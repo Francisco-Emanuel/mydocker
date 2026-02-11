@@ -33,4 +33,4 @@ docker build -t teste_docker -f Dockerfile.multistage ./teste_docker
 - [] docker-compose.yaml
 - [x] Postgres
 - [] mudar imagem para eclipse/temurin
-- [] tirar quarkus-cli
+- [x] tirar quarkus-cli
