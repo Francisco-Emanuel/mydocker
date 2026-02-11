@@ -5,12 +5,11 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
-@Path("/teste")
-public class GreetingResource {
-
+@Path("/")
+public class Home {
     @GET
-    @Produces(MediaType.TEXT_PLAIN)
-    public String hello() {
-        return "novo teste 2";
+    @Produces(MediaType.APPLICATION_JSON)
+    public String home() {
+        return "this is home?";
     }
 }

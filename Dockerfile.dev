@@ -38,11 +38,7 @@ ENV HOME=/home/quarkus
 
 WORKDIR /home/quarkus
 
-RUN curl -Ls https://sh.jbang.dev | bash -s - trust add https://repo1.maven.org/maven2/io/quarkus/quarkus-cli/ \
-    && curl -Ls https://sh.jbang.dev | bash -s - app install --fresh --force quarkus@quarkusio
-
-ENV PATH="/home/quarkus/.jbang/bin:${PATH}" \
-    QUARKUS_HTTP_HOST=0.0.0.0
+ENV PATH="/home/quarkus/.jbang/bin:${PATH}" 
 
 WORKDIR /app
 
@@ -53,4 +49,4 @@ COPY --from=builder --chown=quarkus:quarkus /app/target/quarkus-app/quarkus/ /ap
 
 USER quarkus
 ENTRYPOINT []
-CMD ["quarkus", "dev"]
+CMD ["./mvnw", "quarkus:dev", "-Dquarkus.http.host=0.0.0.0"]
